@@ -9,16 +9,32 @@ class BeamerRouterDelegate extends RouterDelegate<Uri>
     with ChangeNotifier, PopNavigatorRouterDelegateMixin<Uri> {
   BeamerRouterDelegate({
     @required this.beamLocations,
+    this.preferUpdate = true,
+    this.removeDuplicateHistory = true,
     BeamPage notFoundPage,
     this.notFoundRedirect,
     this.guards = const <BeamGuard>[],
     this.navigatorObservers = const <NavigatorObserver>[],
   })  : _navigatorKey = GlobalKey<NavigatorState>(),
         _currentLocation = beamLocations[0]..prepare(),
-        notFoundPage = notFoundPage ?? BeamPage(child: Container());
+        notFoundPage = notFoundPage ?? BeamPage(child: Container()) {
+    _beamHistory.add(_currentLocation);
+  }
 
   /// List of all [BeamLocation]s that this router handles.
   final List<BeamLocation> beamLocations;
+
+  /// Whether to prefer updating [currentLocation] if it's of the same type
+  /// as the location being beamed to, instead of adding it to [beamHistory].
+  ///
+  /// See how this is used at [beamTo] implementation.
+  final bool preferUpdate;
+
+  /// Whether to remove locations from history if they are the same type
+  /// as the location beaing beamed to.
+  ///
+  /// See how this is used at [beamTo] implementation.
+  final bool removeDuplicateHistory;
 
   /// Page to show when no [BeamLocation] supports the incoming URI.
   final BeamPage notFoundPage;
@@ -93,6 +109,12 @@ class BeamerRouterDelegate extends RouterDelegate<Uri>
   }) {
     _beamBackOnPop = beamBackOnPop;
     _stacked = stacked;
+    if (preferUpdate && location.runtimeType == _currentLocation.runtimeType) {
+      _beamHistory.removeLast();
+    }
+    if (removeDuplicateHistory) {
+      _beamHistory.removeWhere((l) => l.runtimeType == location.runtimeType);
+    }
     _beamHistory.add(location..prepare());
     _currentLocation = _beamHistory.last;
     notifyListeners();
@@ -119,7 +141,7 @@ class BeamerRouterDelegate extends RouterDelegate<Uri>
   }) {
     final location = Utils.chooseBeamLocation(Uri.parse(uri), beamLocations);
     location.data = data;
-    beamTo(location, beamBackOnPop: beamBackOnPop);
+    beamTo(location, beamBackOnPop: beamBackOnPop, stacked: stacked);
   }
 
   /// Whether it is possible to [beamBack],
@@ -259,5 +281,4 @@ class BeamerRouterDelegate extends RouterDelegate<Uri>
     }
     return null;
   }
-
 }
