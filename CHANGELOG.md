@@ -1,3 +1,11 @@
+# 0.9.2
+
+- **Fix** removing last path segment from possibly unmodifiable List
+
+# 0.9.1
+
+- **Fix** removing the last empty path segment when it's the only one
+
 # 0.9.0+1
 
 - **Fix** formatting
