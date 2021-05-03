@@ -1,10 +1,23 @@
 name: tests
+
 on:
   push:
-    branches: [master]
-  workflow_dispatch:
+    branches:
+      - master
+    paths:
+      - "package/**"
+  pull_request:
+    branches:
+      - master
+      - nullsafety
+    paths:
+      - "package/**"
+
 jobs:
   test:
+    defaults:
+      run:
+        working-directory: package
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
