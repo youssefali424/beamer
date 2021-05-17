@@ -12,12 +12,17 @@ import 'package:user_repository/user_repository.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   HydratedBloc.storage = await HydratedStorage.build(
-    storageDirectory: kIsWeb ? HydratedStorage.webStorageDirectory : await getTemporaryDirectory(),
+    storageDirectory: kIsWeb
+        ? HydratedStorage.webStorageDirectory
+        : await getTemporaryDirectory(),
   );
-  runApp(MyApp(
-    authenticationRepository: AuthenticationRepository(),
-    userRepository: UserRepository(),
-  ));
+
+  runApp(
+    MyApp(
+      authenticationRepository: AuthenticationRepository(),
+      userRepository: UserRepository(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -30,21 +35,29 @@ class MyApp extends StatelessWidget {
   final AuthenticationRepository authenticationRepository;
   final UserRepository userRepository;
 
+  final routerDelegate = BeamerDelegate(
+    guards: [
+      // Beam to /login if the user is unauthenticated:
+      BeamGuard(
+        pathBlueprints: ['/logged_in_page'],
+        check: (context, state) =>
+            context.select((AuthenticationBloc auth) => auth.isAuthenticated()),
+        beamToNamed: '/login',
+      ),
+      // Beam to /logged_in_page if the user is authenticated:
+      BeamGuard(
+        pathBlueprints: ['/login'],
+        check: (context, state) => context
+            .select((AuthenticationBloc auth) => !auth.isAuthenticated()),
+        beamToNamed: '/logged_in_page',
+      ),
+    ],
+    initialPath: '/login',
+    locationBuilder: (state) => BeamerLocations(state),
+  );
+
   @override
   Widget build(BuildContext context) {
-    final router = BeamerRouterDelegate(
-      guards: [
-        BeamGuard(
-          guardNonMatching: true,
-          pathBlueprints: ['/login'],
-          beamToNamed: '/login',
-          check: (context, state) =>
-              context.select((AuthenticationBloc auth) => auth.isAuthenticated()),
-        ),
-      ],
-      initialPath: '/login',
-      locationBuilder: (state) => BeamerLocations(state),
-    );
     return RepositoryProvider.value(
       value: authenticationRepository,
       child: BlocProvider<AuthenticationBloc>(
@@ -53,21 +66,11 @@ class MyApp extends StatelessWidget {
           userRepository: userRepository,
         ),
         child: BeamerProvider(
-          routerDelegate: router,
+          routerDelegate: routerDelegate,
           child: MaterialApp.router(
-            title: 'Authentication with Bloc',
             debugShowCheckedModeBanner: false,
-            routeInformationParser: BeamerRouteInformationParser(),
-            routerDelegate: router,
-            builder: (context, child) {
-              return BlocListener<AuthenticationBloc, AuthenticationState>(
-                child: child,
-                listener: (context, state) {
-                  if (state.status == AuthenticationStatus.authenticated)
-                    context.beamToNamed('/logged_in_page');
-                },
-              );
-            },
+            routerDelegate: routerDelegate,
+            routeInformationParser: BeamerParser(),
           ),
         ),
       ),

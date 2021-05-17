@@ -4,7 +4,7 @@ import 'package:beamer/beamer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final delegate = BeamerRouterDelegate(
+  final delegate = BeamerDelegate(
     locationBuilder: SimpleLocationBuilder(
       routes: {
         '/': (context) => Container(),
@@ -12,12 +12,12 @@ void main() {
       },
     ),
   );
-  delegate.setNewRoutePath(Uri.parse('/'));
+  delegate.setNewRoutePath(BeamState.fromUri(Uri.parse('/')));
 
   group('Keys', () {
     testWidgets('each BeamPage has a differenet ValueKey', (tester) async {
       await tester.pumpWidget(MaterialApp.router(
-        routeInformationParser: BeamerRouteInformationParser(),
+        routeInformationParser: BeamerParser(),
         routerDelegate: delegate,
       ));
       delegate.beamToNamed('/test');
@@ -33,15 +33,15 @@ void main() {
 
   group('Query', () {
     test('location takes query', () {
-      expect(delegate.currentLocation.state.queryParameters, equals({}));
+      expect(delegate.currentBeamLocation.state.queryParameters, equals({}));
       delegate.beamToNamed('/?q=t');
-      expect(
-          delegate.currentLocation.state.queryParameters, equals({'q': 't'}));
+      expect(delegate.currentBeamLocation.state.queryParameters,
+          equals({'q': 't'}));
     });
 
     testWidgets('location includes query in page key', (tester) async {
       await tester.pumpWidget(MaterialApp.router(
-        routeInformationParser: BeamerRouteInformationParser(),
+        routeInformationParser: BeamerParser(),
         routerDelegate: delegate,
       ));
       expect(delegate.currentPages.last.key, isA<ValueKey>());
@@ -53,22 +53,22 @@ void main() {
   group('NotFound', () {
     test('can be recognized', () {
       delegate.beamToNamed('/unknown');
-      expect(delegate.currentLocation, isA<NotFound>());
+      expect(delegate.currentBeamLocation, isA<NotFound>());
 
       delegate.beamToNamed('/test/unknown');
-      expect(delegate.currentLocation, isA<NotFound>());
+      expect(delegate.currentBeamLocation, isA<NotFound>());
     });
 
     testWidgets('delegate builds notFoundPage', (tester) async {
       await tester.pumpWidget(MaterialApp.router(
-        routeInformationParser: BeamerRouteInformationParser(),
+        routeInformationParser: BeamerParser(),
         routerDelegate: delegate,
       ));
       expect(find.text('Not found'), findsOneWidget);
     });
 
     test('* in path segment will override NotFound', () {
-      final delegate = BeamerRouterDelegate(
+      final delegate = BeamerDelegate(
         locationBuilder: SimpleLocationBuilder(
           routes: {
             '/': (context) => Container(),
@@ -78,41 +78,41 @@ void main() {
       );
 
       delegate.beamToNamed('/test/anything');
-      expect(delegate.currentLocation, isA<SimpleBeamLocation>());
+      expect(delegate.currentBeamLocation, isA<SimpleBeamLocation>());
     });
 
     test('only * will override NotFound', () {
-      final delegate1 = BeamerRouterDelegate(
+      final delegate1 = BeamerDelegate(
         locationBuilder: SimpleLocationBuilder(
           routes: {
             '/*': (context) => Container(),
           },
         ),
       );
-      delegate1.setNewRoutePath(Uri.parse('/anything'));
-      expect(delegate1.currentLocation, isA<SimpleBeamLocation>());
+      delegate1.setNewRoutePath(BeamState.fromUri(Uri.parse('/anything')));
+      expect(delegate1.currentBeamLocation, isA<SimpleBeamLocation>());
 
-      final delegate2 = BeamerRouterDelegate(
+      final delegate2 = BeamerDelegate(
         locationBuilder: SimpleLocationBuilder(
           routes: {
             '*': (context) => Container(),
           },
         ),
       );
-      delegate2.setNewRoutePath(Uri.parse('/anything'));
-      expect(delegate2.currentLocation, isA<SimpleBeamLocation>());
+      delegate2.setNewRoutePath(BeamState.fromUri(Uri.parse('/anything')));
+      expect(delegate2.currentBeamLocation, isA<SimpleBeamLocation>());
     });
 
     test('path parameters are not considered NotFound', () {
-      final delegate1 = BeamerRouterDelegate(
+      final delegate1 = BeamerDelegate(
         locationBuilder: SimpleLocationBuilder(
           routes: {
             '/test/:testId': (context) => Container(),
           },
         ),
       );
-      delegate1.setNewRoutePath(Uri.parse('/test/1'));
-      expect(delegate1.currentLocation, isA<SimpleBeamLocation>());
+      delegate1.setNewRoutePath(BeamState.fromUri(Uri.parse('/test/1')));
+      expect(delegate1.currentBeamLocation, isA<SimpleBeamLocation>());
     });
   });
 }

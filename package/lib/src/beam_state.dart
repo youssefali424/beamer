@@ -1,7 +1,12 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+
 import './utils.dart';
 import './beam_location.dart';
 
-/// A state for [BeamLocation]
+/// A state for [BeamerDelegate] and [BeamLocation].
+///
+/// Helps in building the pages and creates an URI.
 class BeamState {
   BeamState({
     this.pathBlueprintSegments = const <String>[],
@@ -12,6 +17,12 @@ class BeamState {
     configure();
   }
 
+  /// Creates a [BeamState] from given [uri] and optional [data].
+  ///
+  /// If [beamLocation] is given, then it will take into consideration
+  /// its path blueprints to populate the [pathParameters] attribute.
+  ///
+  /// See [Utils.createBeamState].
   factory BeamState.fromUri(
     Uri uri, {
     BeamLocation? beamLocation,
@@ -41,7 +52,7 @@ class BeamState {
   /// If current URI is '/books?title=str', this will be `{'title': 'str'}`.
   final Map<String, String> queryParameters;
 
-  /// Custom key/value data for arbitrary use throught a beam location.
+  /// Custom key/value data for arbitrary use.
   final Map<String, dynamic> data;
 
   late Uri _uriBlueprint;
@@ -89,7 +100,7 @@ class BeamState {
         data: data ?? this.data,
       )..configure();
 
-  /// Constructs [uriBlueprint] and [uri] upon creation.
+  /// Constructs [uriBlueprint] and [uri].
   void configure() {
     _uriBlueprint = Uri(
       path: '/' + pathBlueprintSegments.join('/'),
@@ -108,5 +119,15 @@ class BeamState {
       path: '/' + pathSegments.join('/'),
       queryParameters: queryParameters.isEmpty ? null : queryParameters,
     );
+  }
+
+  @override
+  int get hashCode => hashValues(uri, data);
+
+  @override
+  bool operator ==(Object other) {
+    return other is BeamState &&
+        other.uri == uri &&
+        mapEquals(other.data, data);
   }
 }
